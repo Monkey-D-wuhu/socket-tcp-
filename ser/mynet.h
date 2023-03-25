@@ -2,5 +2,5 @@
 #define __MYNET_H__
 	int init_net(unsigned short port);
 	int accept_cli(int serfd);
-	int do_work(int connfd);
+	void *do_work(void *cfd);
 #endif

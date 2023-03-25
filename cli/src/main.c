@@ -1,4 +1,4 @@
-#include "mycli.h"
+#include "../include/mycli.h"
 #include <stdio.h>
 #include <unistd.h>
 

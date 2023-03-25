@@ -5,6 +5,9 @@
 #include <string.h>
 #include <arpa/inet.h>
 #include "myfop.h"
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <stdlib.h>
 
 int init_net(unsigned short port)
 {
@@ -62,12 +65,13 @@ int accept_cli(int serfd)
 	return connfd;
 }
 
-int do_work(int connfd)
+void *do_work(void *cfd)
 {
+	int connfd = (int)cfd;
 	if(connfd < 0)
 	{
 		puts("connfd < 0");
-		return -1;
+		return NULL;
 	}
 	puts("do-work");
 	char cmd[50];
@@ -83,6 +87,41 @@ int do_work(int connfd)
 		{
 			puts("download file");
 			puts(filename);
+			//open
+			int fd = open(filename, O_RDONLY);
+			if(fd > 0)
+			{
+				//get filelen
+				int fl = lseek(fd, 0, SEEK_END);
+				char flen[20];
+				memset(flen, 0, sizeof(flen));
+				sprintf(flen,"%d",fl);
+				//send filelen
+				send(connfd, flen, sizeof(flen), 0);
+				sleep(1);
+				lseek(fd, 0, SEEK_SET);
+				//read file and send
+				char *pcon = (char *)malloc(fl);
+				if(NULL == pcon)
+				{
+					puts("malloc error.");
+					close(fd);
+					return NULL;
+				}
+				ret = read(fd, pcon, fl);
+				if(ret == fl)
+				{
+					send(connfd, pcon, fl, 0);
+				}
+				sleep(2);
+				free(pcon);
+				//close
+				close(fd);
+			}
+			else
+			{
+				puts("open file error.");
+			}
 		}
 	}	
 	else if(ret == 0)
@@ -93,5 +132,6 @@ int do_work(int connfd)
 	{
 		puts("recv error.");
 	}
-	return 0;
+	close(connfd);
+	return NULL;
 }

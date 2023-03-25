@@ -1,6 +1,7 @@
 #include "mynet.h"
 #include <unistd.h>
 #include <stdio.h>
+#include <pthread.h>
 
 int main()
 {
@@ -12,16 +13,27 @@ int main()
 		return -1;
 	}
 	puts("init_net success.");
-	int connfd = accept_cli(ser_fd);
-	if(connfd < 0)
+	while(1)
 	{
-		puts("accept_cli fail");
-		close(ser_fd);
-		return -1;
+		int connfd = accept_cli(ser_fd);
+		if(connfd < 0)
+		{
+			puts("accept_cli fail");
+			close(ser_fd);
+			return -1;
+		}
+		puts("accept cli success.");
+		
+		//创建线程
+		pthread_t tid;
+		int ret = pthread_create(&tid, NULL, do_work, (void *)connfd);
+		if(ret != 0)
+		{
+			puts("pthread create error.");
+			continue;
+		}
+		pthread_detach(tid);
 	}
-	puts("accept cli success.");
-	do_work(connfd);
-	close(connfd);
 	close(ser_fd);
 	return 0;
 }

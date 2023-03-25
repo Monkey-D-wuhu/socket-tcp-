@@ -4,6 +4,9 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <stdlib.h>
 
 int init_cli(char *ip, unsigned short port)
 {
@@ -53,5 +56,36 @@ int do_work(int connfd)
 	strcpy(filename, cmd+4);
 	puts(filename);
 	sleep(3);
+	int fd = open(filename, O_CREAT | O_WRONLY, 0664);
+	if(fd < 0)
+	{
+		puts("open file error.");
+		close(connfd);
+		return -1;
+	}
+	char flen[20] = {0};
+	int ret = recv(connfd, flen, sizeof(flen), 0);
+	if(ret > 0)
+	{
+		int fl = atoi(flen);
+		char *p = (char *)malloc(fl);
+		while(fl)
+		{
+			memset(p,0,fl);
+			ret = recv(connfd, p, fl, 0);
+			if(ret > 0)
+			{
+				write(fd,p,ret);
+				printf("ret:%d\n",ret);
+				fl -= ret;
+			}
+			else if(ret == 0)
+			{
+				break;
+			}
+		}
+	}
+	close(fd);
+	close(connfd);
 	return 0;
 }
